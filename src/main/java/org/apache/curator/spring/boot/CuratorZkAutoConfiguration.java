@@ -42,7 +42,7 @@ public class CuratorZkAutoConfiguration {
 				.canBeReadOnly(properties.isCanBeReadOnly())
 				.authorization(CollectionUtils.isEmpty(properties.getAuthInfo()) ? new ArrayList<AuthInfo>()
 						: properties.getAuthInfo().stream().map(info -> {
-							return new AuthInfo(info.getAuth(), info.getAuth().getBytes());
+							return new AuthInfo(info.getScheme(), info.getAuth().getBytes());
 						}).collect(Collectors.toList()))
 				.ensembleTracker(properties.isWithEnsembleTracker())
 				.namespace(properties.getNamespace())
