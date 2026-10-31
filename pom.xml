@@ -305,6 +305,7 @@
                     <jdk>[1.8,)</jdk>
                 </activation>
             <properties>
+        <lombok.version>1.18.30</lombok.version>
                 <additionalparam>-Xdoclint:none</additionalparam>
             </properties>
         </profile>
