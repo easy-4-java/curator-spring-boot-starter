@@ -13,9 +13,11 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
 import java.nio.charset.StandardCharsets;
+import java.util.Arrays;
 import java.util.List;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicReference;
 
 import static org.junit.jupiter.api.Assertions.*;
 
@@ -49,17 +51,28 @@ class CuratorTest {
 
     @Test
     void receivesNodeChangesThroughCuratorCache() throws Exception {
+        byte[] first = "first".getBytes(StandardCharsets.UTF_8);
+        byte[] second = "second".getBytes(StandardCharsets.UTF_8);
+        CountDownLatch created = new CountDownLatch(1);
         CountDownLatch changed = new CountDownLatch(1);
+        AtomicReference<byte[]> changedData = new AtomicReference<>();
         try (CuratorCache cache = CuratorCache.build(client, "/watched")) {
             cache.listenable().addListener((type, oldData, data) -> {
+                if (type == CuratorCacheListener.Type.NODE_CREATED
+                        && data != null && Arrays.equals(first, data.getData())) {
+                    created.countDown();
+                }
                 if (type == CuratorCacheListener.Type.NODE_CHANGED) {
+                    changedData.set(data.getData());
                     changed.countDown();
                 }
             });
             cache.start();
-            client.create().forPath("/watched", "first".getBytes(StandardCharsets.UTF_8));
-            client.setData().forPath("/watched", "second".getBytes(StandardCharsets.UTF_8));
-            assertTrue(changed.await(5, TimeUnit.SECONDS));
+            client.create().forPath("/watched", first);
+            assertTrue(created.await(5, TimeUnit.SECONDS), "cache did not observe the initial node data");
+            client.setData().forPath("/watched", second);
+            assertTrue(changed.await(5, TimeUnit.SECONDS), "cache did not observe the node update");
+            assertArrayEquals(second, changedData.get());
         }
     }
 
